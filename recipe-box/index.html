@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Recipes">
+<meta name="theme-color" content="#5b1f45">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icon-180.png">
+<title>Recipe Box</title>
+<style>
+/* VOICE: warm, homely, quick to use one-handed in a kitchen or supermarket
+   IDEA: a well-thumbed recipe tin: index cards with a coloured tab per meal
+   PICTURE: the recipe list itself, photo or coloured initial tile on each card
+   COLOUR and TYPE: plum header, saffron ticks, white cards; New York serif titles, system sans body
+   LAYOUT: sticky plum header with search, two filter rows, list, bottom tab bar, + button */
+:root{--plum:#5b1f45;--plum2:#7a2e5e;--saff:#f2a93b;--onsaff:#3a1430;--bg:#fff;--ink:#1d1416;--mut:#6f6266;--line:#eee5e8;--card:#f8f3f5;--danger:#b3261e;color-scheme:light dark}
+@media(prefers-color-scheme:dark){:root{--plum:#3a1430;--plum2:#eaa9d2;--bg:#141011;--ink:#f3ebe7;--mut:#b2a5a8;--line:#2b2225;--card:#1f181b;--danger:#ff8a80}}
+*{box-sizing:border-box;min-width:0;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;overflow-x:clip}
+.serif,h1,h2,.dt{font-family:ui-serif,"New York",Georgia,serif}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--saff);outline-offset:2px}
+[hidden]{display:none!important}
+header.top{background:var(--plum);color:#fff;padding:calc(env(safe-area-inset-top) + 12px) 16px 14px;position:sticky;top:0;z-index:5}
+.hrow{display:flex;align-items:center;gap:12px}
+.hrow>div{flex:1}
+header h1{font-weight:700;font-size:32px;line-height:1.05;margin:0}
+.sub{opacity:.82;font-size:14px;margin-top:3px}
+.icon-btn{flex:none;width:44px;height:44px;border:0;border-radius:22px;background:rgba(255,255,255,.14);color:#fff;display:grid;place-items:center}
+.search{margin-top:12px;width:100%;font-size:16px;padding:11px 14px;border-radius:12px;border:0;background:#fff;color:#1d1416}
+.frow{display:flex;gap:8px;overflow-x:auto;padding:10px 16px 0;scrollbar-width:none}
+.frow::-webkit-scrollbar{display:none}
+.frow:last-of-type{padding-bottom:6px}
+.chip{flex:none;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:7px 13px;font-size:15px;min-height:40px;white-space:nowrap}
+.chip.on{background:var(--plum2);color:var(--bg);border-color:var(--plum2)}
+.chip small{opacity:.65;margin-left:4px}
+main{padding-bottom:calc(150px + env(safe-area-inset-bottom))}
+.list{padding:0 12px}
+.card{display:flex;align-items:center;gap:12px;padding:8px 4px;border-bottom:1px solid var(--line)}
+.thumb{flex:none;width:56px;height:56px;border-radius:12px;border:0;padding:0;overflow:hidden;display:grid;place-items:center;font:700 24px ui-serif,"New York",Georgia,serif;color:#fff}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.info{flex:1;text-align:left;background:none;border:0;padding:6px 0;color:inherit}
+.info b{display:block;font-weight:600;font-size:16px;line-height:1.25}
+.info span{display:block;color:var(--mut);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.tick{flex:none;width:44px;height:44px;border-radius:22px;border:2px solid var(--line);background:none;color:transparent;display:grid;place-items:center}
+.tick.on{background:var(--saff);border-color:var(--saff);color:var(--onsaff)}
+.x{flex:none;width:40px;height:44px;border:0;background:none;color:var(--mut);font-size:24px;line-height:1}
+.empty{padding:40px 24px;text-align:center;color:var(--mut)}
+.banner{margin:12px 12px 4px;padding:12px 14px;border-radius:14px;background:var(--card);font-size:14px;display:flex;gap:10px;align-items:flex-start}
+.banner p{margin:0;flex:1}
+.tabs{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--bg);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);z-index:6}
+.tabs button{flex:1;border:0;background:none;color:var(--mut);padding:7px 0 5px;font-size:12px;display:flex;flex-direction:column;align-items:center;gap:2px;min-height:56px;position:relative}
+.tabs button.on{color:var(--plum2);font-weight:600}
+.badge{position:absolute;top:3px;left:calc(50% + 6px);background:var(--saff);color:var(--onsaff);border-radius:9px;font-size:11px;font-weight:700;min-width:18px;height:18px;padding:0 5px;display:grid;place-items:center}
+.fab{position:fixed;right:18px;bottom:calc(74px + env(safe-area-inset-bottom));width:58px;height:58px;border-radius:29px;border:0;background:var(--saff);color:var(--onsaff);box-shadow:0 6px 18px rgba(0,0,0,.22);z-index:6;display:grid;place-items:center}
+.sheet{position:fixed;inset:0;background:var(--bg);z-index:10;overflow-y:auto;-webkit-overflow-scrolling:touch;animation:up .2s ease-out}
+@keyframes up{from{transform:translateY(20px);opacity:0}}
+@media(prefers-reduced-motion:reduce){.sheet{animation:none}}
+.sbar{position:sticky;top:0;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:calc(env(safe-area-inset-top) + 4px) 6px 4px;background:var(--bg);border-bottom:1px solid var(--line);z-index:2}
+.sbar b{font-size:17px}
+.tbtn{border:0;background:none;color:var(--plum2);font-weight:600;font-size:17px;min-height:44px;padding:0 10px}
+.pad{padding:16px 18px calc(40px + env(safe-area-inset-bottom));max-width:720px;margin:0 auto}
+.hero{display:block;width:100%;aspect-ratio:4/3;max-height:52vh;object-fit:cover}
+.hero.ph{display:grid;place-items:center;color:rgba(255,255,255,.9);font:700 72px ui-serif,"New York",Georgia,serif;aspect-ratio:auto;height:150px}
+.dt{font-size:30px;line-height:1.1;margin:4px 0 8px;font-weight:700}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.tag{font-size:13px;padding:3px 10px;border-radius:999px;background:var(--card);color:var(--mut)}
+.facts{display:flex;flex-wrap:wrap;gap:6px 16px;color:var(--mut);font-size:15px;margin-bottom:14px}
+.facts a{color:var(--plum2)}
+.big{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:50px;border-radius:14px;border:2px solid var(--plum2);background:none;color:var(--plum2);font-weight:600;font-size:16px;margin:8px 0;text-align:center;padding:0 14px}
+.big.on,.big.primary{background:var(--saff);border-color:var(--saff);color:var(--onsaff)}
+.big.ghost{border-color:var(--line);color:var(--ink)}
+.danger-link{display:block;margin:28px auto 0;border:0;background:none;color:var(--danger);font-weight:600;min-height:44px;padding:0 12px}
+h3{font-size:13px;font-weight:700;color:var(--mut);margin:22px 0 6px;letter-spacing:.02em}
+ul.ing{padding-left:20px;margin:0}
+ul.ing li,ol.meth li{margin:6px 0}
+ol.meth{padding-left:22px;margin:0}
+.notes{white-space:pre-wrap;margin:0}
+.hint{background:var(--card);border-radius:14px;padding:14px;color:var(--mut);font-size:15px;margin-top:18px}
+label.f{display:block;font-size:14px;font-weight:600;color:var(--mut);margin:16px 0 6px}
+.in{width:100%;font-size:16px;padding:12px 13px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+textarea.in{min-height:130px;resize:vertical;line-height:1.45}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+.urlrow{display:flex;gap:8px}
+.urlrow .in{flex:1}
+.sbtn{flex:none;min-height:46px;padding:0 16px;border-radius:12px;border:0;background:var(--plum2);color:var(--bg);font-weight:600}
+.sbtn:disabled{opacity:.6}
+.photo{display:flex;gap:12px;align-items:center}
+.photo img,.photo .noimg{width:96px;height:96px;border-radius:14px;object-fit:cover;background:var(--card);flex:none}
+.photo .noimg{display:grid;place-items:center;color:var(--mut);font-size:13px;text-align:center}
+.photo .btns{display:flex;flex-direction:column;gap:8px;flex:1}
+.pbtn{min-height:44px;border-radius:12px;border:1px solid var(--line);background:none;display:flex;align-items:center;justify-content:center;font-weight:600;padding:0 12px}
+.small{font-size:13px;color:var(--mut);margin:6px 0 0}
+.catpick{display:flex;flex-wrap:wrap;gap:8px}
+.grp{font-size:13px;color:var(--mut);margin:10px 0 6px}
+.wk{display:flex;align-items:center;gap:16px;padding:18px 16px 6px}
+.wk .n{font:700 52px/1 ui-serif,"New York",Georgia,serif;color:var(--plum2)}
+.wk p{margin:0;font-size:16px}
+.wk small{color:var(--mut);font-size:14px}
+.acts{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;padding:6px 16px 8px}
+.acts .big{margin:0;font-size:15px}
+.shop-add{display:flex;gap:8px;padding:16px 16px 4px}
+.shop-add .in{flex:1}
+.sh{padding:0 16px}
+.sh h4{margin:18px 0 4px;font-size:15px;font-family:ui-serif,"New York",Georgia,serif}
+.item{display:flex;align-items:center;gap:12px;width:100%;border:0;background:none;text-align:left;padding:9px 0;border-bottom:1px solid var(--line);min-height:48px}
+.item .box{flex:none;width:26px;height:26px;border-radius:8px;border:2px solid var(--line);display:grid;place-items:center;color:transparent}
+.item.done .box{background:var(--saff);border-color:var(--saff);color:var(--onsaff)}
+.item.done span{text-decoration:line-through;color:var(--mut)}
+.dlg{position:fixed;inset:0;background:rgba(20,10,16,.5);z-index:20;display:grid;place-items:center;padding:20px}
+.dbox{background:var(--bg);border-radius:20px;padding:22px 20px 14px;width:100%;max-width:380px;box-shadow:0 20px 50px rgba(0,0,0,.3)}
+.dbox h3{font:700 24px/1.15 ui-serif,"New York",Georgia,serif;color:var(--ink);margin:4px 0 6px;letter-spacing:0}
+.dbox p{margin:0 0 6px}
+.dbtns{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;margin-top:14px}
+.dbtns button{min-height:44px;padding:0 14px;border-radius:12px;border:0;background:none;color:var(--plum2);font-weight:600}
+.dbtns .primary{background:var(--saff);color:var(--onsaff)}
+.dbtns .danger{background:var(--danger);color:#fff}
+.mut{color:var(--mut)}
+#toast{position:fixed;left:16px;right:16px;bottom:calc(140px + env(safe-area-inset-bottom));margin:auto;max-width:420px;background:#1d1416;color:#fff;padding:12px 16px;border-radius:14px;font-size:15px;z-index:30;box-shadow:0 8px 24px rgba(0,0,0,.25);text-align:center}
+.catrow{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}
+.catrow span{flex:1}
+.catrow button{min-height:40px;border:0;background:none;color:var(--plum2);font-weight:600;padding:0 8px}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="hrow">
+    <div><h1 id="htitle">Recipes</h1><div class="sub" id="hsub"></div></div>
+    <button class="icon-btn" data-act="settings" aria-label="Settings and backup"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+  </div>
+  <input id="q" class="search" type="search" placeholder="Search recipes or ingredients" autocomplete="off">
+</header>
+
+<main>
+  <section id="v-recipes">
+    <div id="install" class="banner" hidden><p><b>Put it on your home screen:</b> tap the Share button in Safari, then <b>Add to Home Screen</b>. Always open it from that icon, because it keeps its own copy of your recipes.</p><button class="x" data-act="hideinstall" aria-label="Dismiss">×</button></div>
+    <div id="fmain" class="frow" aria-label="Main ingredient"></div>
+    <div id="ftype" class="frow" aria-label="Type of meal"></div>
+    <div id="ftags" class="frow" aria-label="Tags"></div>
+    <div id="list" class="list"></div>
+  </section>
+  <section id="v-week" hidden></section>
+  <section id="v-shop" hidden></section>
+</main>
+
+<button class="fab" id="fab" data-act="add" aria-label="Add a recipe"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+
+<nav class="tabs">
+  <button data-act="tab" data-t="recipes" class="on"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H20v16H5.5A1.5 1.5 0 0 0 4 20.5v-16z"/><path d="M4 20.5A1.5 1.5 0 0 0 5.5 22H20v-3"/><path d="M9 8h7M9 12h5"/></svg>Recipes</button>
+  <button data-act="tab" data-t="week"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4M9 15l2 2 4-4"/></svg>This week<span class="badge" id="wbadge" hidden></span></button>
+  <button data-act="tab" data-t="shop"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18l-2 11H5L3 9z"/><path d="M8 9l3-6M16 9l-3-6"/></svg>Shopping</button>
+</nav>
+
+<div id="sheet" class="sheet" hidden></div>
+<div id="dlg" class="dlg" hidden></div>
+<div id="toast" hidden></div>
+<input type="file" id="restorefile" accept=".json,application/json" hidden>
+
+<script src="/seed.js"></script>
+<script>
+{
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = p => (p||'r') + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const TICK = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+const PALETTE = ['#5b1f45','#c0532b','#2f6f73','#a8741a','#7a2e5e','#3c5a99','#8a4b2a','#46703a','#9c3d54','#4b5563'];
+const colorFor = s => { let h = 0; for (const c of String(s||'')) h = (h * 31 + c.charCodeAt(0)) >>> 0; return PALETTE[h % PALETTE.length]; };
+
+/* ---------- storage (IndexedDB, on this phone) ---------- */
+let dbp;
+const idb = () => dbp || (dbp = new Promise((res, rej) => {
+  const r = indexedDB.open('recipe-box', 1);
+  r.onupgradeneeded = () => { const d = r.result; d.createObjectStore('recipes', {keyPath:'id'}); d.createObjectStore('photos'); d.createObjectStore('meta'); };
+  r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+}));
+async function op(store, mode, fn) {
+  const d = await idb();
+  return new Promise((res, rej) => {
+    const t = d.transaction(store, mode); const req = fn(t.objectStore(store));
+    t.oncomplete = () => res(req && 'result' in req ? req.result : undefined);
+    t.onerror = t.onabort = () => rej(t.error);
+  });
+}
+const getAll = s => op(s, 'readonly', o => o.getAll());
+const get = (s, k) => op(s, 'readonly', o => o.get(k));
+const put = (s, v, k) => op(s, 'readwrite', o => k === undefined ? o.put(v) : o.put(v, k));
+const del = (s, k) => op(s, 'readwrite', o => o.delete(k));
+const clearStore = s => op(s, 'readwrite', o => o.clear());
+
+/* ---------- state ---------- */
+let R = [], CATS = [], SHOP = {extra: [], done: []};
+let tab = 'recipes', q = '';
+const GROUPS = [['main','Main ingredient'],['type','Type of meal'],['tags','Tags']];
+const F = {main: null, type: null, tags: null};
+const passF = (r, skip) => GROUPS.every(([g]) => g === skip || !F[g] || r.cats.includes(F[g]));
+let sheetState = null, pending, formCats = new Set(), backupFile = null;
+const urls = new Map();
+async function photoURL(id) {
+  if (!id) return null; if (urls.has(id)) return urls.get(id);
+  const b = await get('photos', id); if (!b) return null;
+  const u = URL.createObjectURL(b); urls.set(id, u); return u;
+}
+const catsIn = g => CATS.filter(c => c.group === g).map(c => c.name);
+const saveRecipe = r => put('recipes', r);
+const saveCats = () => put('meta', CATS, 'cats');
+const saveShop = () => put('meta', SHOP, 'shop');
+
+function seed() {
+  const G = window.SEED_GROUPS, code = {}, cats = [];
+  for (const g of ['main', 'type', 'tags']) for (const [k, n] of G[g]) { code[k] = n; cats.push({name: n, group: g}); }
+  const map = new Map();
+  for (let line of window.SEED.split('\n')) {
+    line = line.trim(); if (!line) continue;
+    let week = false; if (line[0] === '*') { week = true; line = line.slice(1); }
+    const [title, tags = '', source = '', notes = ''] = line.split('|').map(s => s.trim());
+    const k = title.toLowerCase();
+    let r = map.get(k);
+    if (!r) { r = {id: uid(), title, cats: [], source, url: '', time: '', serves: '', ingredients: [], method: [], notes, photo: null, week: false, cooked: false, created: Date.now()}; map.set(k, r); }
+    for (const t of tags.split(',').map(s => s.trim()).filter(Boolean)) if (code[t] && !r.cats.includes(code[t])) r.cats.push(code[t]);
+    if (week) r.week = true;
+  }
+  return {recipes: [...map.values()], cats};
+}
+
+async function load() {
+  try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e) {}
+  try {
+    if (!(await get('meta', 'seeded'))) {
+      const s = seed();
+      await op('recipes', 'readwrite', o => { s.recipes.forEach(r => o.put(r)); });
+      await put('meta', s.cats, 'cats'); await put('meta', true, 'seeded');
+    }
+    R = await getAll('recipes'); CATS = (await get('meta', 'cats')) || []; SHOP = (await get('meta', 'shop')) || {extra: [], done: []};
+    for (const r of R) if (r.photo) await photoURL(r.photo);
+  } catch (e) { toast("Couldn't open your saved recipes on this device."); }
+  render();
+}
+
+/* ---------- UI helpers ---------- */
+let toastT;
+function toast(m) { const t = $('#toast'); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 3200); }
+function dialog(html, buttons) {
+  return new Promise(res => {
+    const d = $('#dlg');
+    d.innerHTML = `<div class="dbox" role="dialog" aria-modal="true">${html}<div class="dbtns">${buttons.map((b, i) => `<button data-i="${i}" class="${b.cls || ''}">${esc(b.label)}</button>`).join('')}</div></div>`;
+    d.hidden = false;
+    d.onclick = e => { const b = e.target.closest('[data-i]'); if (b || e.target === d) { const val = d.querySelector('input') ? d.querySelector('input').value : null; d.hidden = true; d.onclick = null; res({i: b ? +b.dataset.i : -1, val}); } };
+    const f = d.querySelector('input,button.primary,button.danger'); if (f) f.focus();
+  });
+}
+const ask = (msg, ok, danger) => dialog(`<p>${esc(msg)}</p>`, [{label: 'Cancel'}, {label: ok, cls: danger ? 'danger' : 'primary'}]).then(r => r.i === 1);
+function openSheet(html, state) { const s = $('#sheet'); const keep = sheetState && state && sheetState.type === state.type && sheetState.id === state.id ? s.scrollTop : 0; s.innerHTML = html; s.hidden = false; s.scrollTop = keep; sheetState = state; document.body.style.overflow = 'hidden'; }
+function closeSheet() { $('#sheet').hidden = true; $('#sheet').innerHTML = ''; sheetState = null; document.body.style.overflow = ''; }
+const lines = s => s.split('\n').map(x => x.trim()).filter(Boolean);
+const isStandalone = () => navigator.standalone || matchMedia('(display-mode: standalone)').matches;
+function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+
+function thumb(r) {
+  const u = r.photo && urls.get(r.photo);
+  return u ? `<button class="thumb" data-act="open" data-id="${r.id}" aria-label="Open ${esc(r.title)}"><img src="${u}" alt=""></button>`
+           : `<button class="thumb" data-act="open" data-id="${r.id}" aria-label="Open ${esc(r.title)}" style="background:${colorFor(r.cats[0])}">${esc((r.title[0] || '?').toUpperCase())}</button>`;
+}
+function card(r) {
+  const meta = [r.cats.slice(0, 3).join(' · '), r.source].filter(Boolean).join(' — ');
+  return `<div class="card">${thumb(r)}<button class="info" data-act="open" data-id="${r.id}"><b>${esc(r.title)}</b><span>${esc(meta) || '&nbsp;'}</span></button><button class="tick ${r.week ? 'on' : ''}" data-act="tick" data-id="${r.id}" aria-pressed="${r.week}" aria-label="${r.week ? 'Remove from' : 'Add to'} this week">${TICK}</button></div>`;
+}
+
+/* ---------- views ---------- */
+function render() {
+  const wk = R.filter(r => r.week).length;
+  $('#hsub').textContent = `${R.length} recipes · ${wk} picked this week`;
+  $('#htitle').textContent = {recipes: 'Recipes', week: 'This week', shop: 'Shopping'}[tab];
+  $('#q').hidden = tab !== 'recipes';
+  $('#fab').hidden = tab !== 'recipes';
+  const b = $('#wbadge'); b.hidden = !wk; b.textContent = wk;
+  document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x.dataset.t === tab));
+  for (const v of ['recipes', 'week', 'shop']) $('#v-' + v).hidden = v !== tab;
+  if (tab === 'recipes') renderRecipes(); else if (tab === 'week') renderWeek(); else renderShop();
+}
+
+function renderRecipes() {
+  $('#install').hidden = isStandalone() || lsGet('hideinstall') === '1';
+  const ql = q.trim().toLowerCase();
+  const matchQ = r => !ql || [r.title, r.source, r.notes, r.cats.join(' '), r.ingredients.join(' ')].join(' ').toLowerCase().includes(ql);
+  const base = R.filter(matchQ);
+  for (const [g] of GROUPS) {
+    $('#f' + g).innerHTML = catsIn(g).map(n => {
+      const cnt = base.filter(r => r.cats.includes(n) && passF(r, g)).length;
+      return `<button class="chip ${F[g] === n ? 'on' : ''}" data-act="filter" data-g="${g}" data-c="${esc(n)}">${esc(n)}<small>${cnt}</small></button>`;
+    }).join('');
+    $('#f' + g).hidden = !catsIn(g).length;
+  }
+  const list = base.filter(r => passF(r)).sort((a, b) => a.title.localeCompare(b.title));
+  $('#list').innerHTML = list.length ? list.map(card).join('')
+    : `<div class="empty">${R.length ? 'Nothing matches. Try another search or clear a filter.' : 'No recipes yet. Tap + to add your first.'}</div>`;
+}
+
+function renderWeek() {
+  const wk = R.filter(r => r.week).sort((a, b) => (a.cooked - b.cooked) || a.title.localeCompare(b.title));
+  const done = wk.filter(r => r.cooked).length;
+  $('#v-week').innerHTML = `
+    <div class="wk"><div class="n">${wk.length}</div><div><p>${wk.length === 1 ? 'meal' : 'meals'} picked</p><small>${done} cooked so far</small></div></div>
+    <div class="acts"><button class="big" data-act="pick">Pick one for me</button><button class="big ghost" data-act="clearweek" ${wk.length ? '' : 'disabled'}>Start a new week</button></div>
+    <div class="list">${wk.length ? wk.map(r => `<div class="card">${thumb(r)}<button class="info" data-act="open" data-id="${r.id}"><b style="${r.cooked ? 'text-decoration:line-through;opacity:.6' : ''}">${esc(r.title)}</b><span>${r.cooked ? 'Cooked' : 'Tap the tick when cooked'}</span></button><button class="tick ${r.cooked ? 'on' : ''}" data-act="cook" data-id="${r.id}" aria-pressed="${!!r.cooked}" aria-label="Mark ${esc(r.title)} cooked">${TICK}</button><button class="x" data-act="tick" data-id="${r.id}" aria-label="Remove from this week">×</button></div>`).join('')
+      : '<div class="empty">Nothing picked yet. Tick the circle next to any recipe to add it here, or let the app pick one.</div>'}</div>`;
+}
+
+function shopItems() {
+  const wk = R.filter(r => r.week && r.ingredients.length).sort((a, b) => a.title.localeCompare(b.title));
+  return {wk, missing: R.filter(r => r.week && !r.ingredients.length).length};
+}
+function renderShop() {
+  const done = new Set(SHOP.done);
+  const {wk, missing} = shopItems();
+  const item = (key, text) => `<button class="item ${done.has(key) ? 'done' : ''}" data-act="shoptoggle" data-k="${esc(key)}"><span class="box">${TICK}</span><span>${esc(text)}</span></button>`;
+  const extra = SHOP.extra.map(t => item('x|' + t, t)).join('');
+  $('#v-shop').innerHTML = `
+    <form class="shop-add" id="shopform"><input class="in" id="shopin" placeholder="Add something, e.g. milk" autocomplete="off" enterkeyhint="done"><button class="sbtn">Add</button></form>
+    <div class="sh">
+      ${extra ? `<h4>Extras</h4>${extra}` : ''}
+      ${wk.map(r => `<h4>${esc(r.title)}</h4>${r.ingredients.map(t => item(r.id + '|' + t, t)).join('')}`).join('')}
+      ${!extra && !wk.length ? `<div class="empty">Ingredients from this week's meals show up here. ${missing ? `None of your ${missing} picked ${missing === 1 ? 'meal has' : 'meals have'} ingredients saved yet: open one and tap Edit to add them.` : 'Pick some meals first.'}</div>` : ''}
+      ${(extra || wk.length) && missing ? `<p class="small">${missing} picked ${missing === 1 ? 'meal has' : 'meals have'} no ingredients saved yet.</p>` : ''}
+    </div>
+    ${extra || wk.length ? `<div class="acts" style="margin-top:14px"><button class="big" data-act="copylist">Copy list</button><button class="big ghost" data-act="shopclear">Clear ticked</button></div>` : ''}`;
+  $('#shopform').onsubmit = async e => {
+    e.preventDefault(); const v = $('#shopin').value.trim(); if (!v) return;
+    if (!SHOP.extra.includes(v)) SHOP.extra.push(v);
+    await saveShop(); renderShop(); $('#shopin').focus();
+  };
+}
+
+/* ---------- recipe detail ---------- */
+function showDetail(id) {
+  const r = R.find(x => x.id === id); if (!r) return closeSheet();
+  const u = r.photo && urls.get(r.photo);
+  const src = r.url && /^https?:\/\//i.test(r.url) ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.source || 'Open original recipe')}</a>` : esc(r.source);
+  const facts = [r.time && `${esc(r.time)} min`, r.serves && `Serves ${esc(r.serves)}`, src].filter(Boolean);
+  openSheet(`
+    <div class="sbar"><button class="tbtn" data-act="close">‹ Back</button><button class="tbtn" data-act="edit" data-id="${r.id}">Edit</button></div>
+    ${u ? `<img class="hero" src="${u}" alt="">` : `<div class="hero ph" style="background:${colorFor(r.cats[0])}">${esc((r.title[0] || '?').toUpperCase())}</div>`}
+    <div class="pad">
+      <h2 class="dt">${esc(r.title)}</h2>
+      ${r.cats.length ? `<div class="tags">${r.cats.map(c => `<span class="tag">${esc(c)}</span>`).join('')}</div>` : ''}
+      ${facts.length ? `<div class="facts">${facts.map(f => `<span>${f}</span>`).join('')}</div>` : ''}
+      <button class="big ${r.week ? 'on' : ''}" data-act="tick" data-id="${r.id}">${r.week ? TICK + " On this week's list" : 'Add to this week'}</button>
+      ${r.ingredients.length ? `<h3>Ingredients</h3><ul class="ing">${r.ingredients.map(i => `<li>${esc(i)}</li>`).join('')}</ul>` : ''}
+      ${r.method.length ? `<h3>Method</h3><ol class="meth">${r.method.map(i => `<li>${esc(i)}</li>`).join('')}</ol>` : ''}
+      ${r.notes ? `<h3>Notes</h3><p class="notes">${esc(r.notes)}</p>` : ''}
+      ${!r.ingredients.length && !r.method.length ? `<div class="hint">No details saved yet. Tap <b>Edit</b> to add a photo, the link, ingredients or method${r.url ? '' : '. You can paste a link from a recipe website and it will fill these in for you'}.</div>` : ''}
+      <button class="danger-link" data-act="delete" data-id="${r.id}">Delete recipe</button>
+    </div>`, {type: 'detail', id});
+}
+
+/* ---------- add / edit ---------- */
+function catChips() {
+  return GROUPS.map(([g, label]) => `<div class="grp">${label}</div><div class="catpick">${catsIn(g).map(n => `<button type="button" class="chip ${formCats.has(n) ? 'on' : ''}" data-act="fcat" data-c="${esc(n)}">${esc(n)}</button>`).join('')}</div>`).join('');
+}
+function showForm(id) {
+  const r = id ? R.find(x => x.id === id) : null;
+  pending = undefined; formCats = new Set(r ? r.cats : Object.values(F).filter(Boolean));
+  const u = r && r.photo && urls.get(r.photo);
+  openSheet(`
+    <div class="sbar"><button class="tbtn" data-act="cancelform" data-id="${id || ''}">Cancel</button><b>${r ? 'Edit recipe' : 'New recipe'}</b><button class="tbtn" data-act="save" data-id="${id || ''}">Save</button></div>
+    <form class="pad" id="rform" autocomplete="off">
+      <label class="f" for="f-url">Link to recipe (optional)</label>
+      <div class="urlrow"><input class="in" id="f-url" type="url" inputmode="url" placeholder="Paste a website link" value="${esc(r ? r.url : '')}"><button type="button" class="sbtn" id="impbtn" data-act="import">Fill in</button></div>
+      <p class="small">Paste a link from BBC Good Food, RecipeTin Eats and similar sites, then tap Fill in. TikTok and Instagram links are saved but can't be read.</p>
+      <label class="f">Photo</label>
+      <div class="photo"><span id="pv">${u ? `<img src="${u}" alt="">` : '<span class="noimg">No photo</span>'}</span>
+        <div class="btns"><label class="pbtn">${u ? 'Change photo' : 'Add photo'}<input type="file" id="f-photo" accept="image/*" hidden></label><button type="button" class="pbtn" data-act="rmphoto" ${u ? '' : 'hidden'} id="rmphoto">Remove photo</button></div></div>
+      <label class="f" for="f-title">Name</label>
+      <input class="in" id="f-title" value="${esc(r ? r.title : '')}" placeholder="e.g. Tuscan salmon" autocapitalize="sentences">
+      <label class="f">Categories</label>
+      <div id="catwrap">${catChips()}</div>
+      <div class="urlrow" style="margin-top:10px"><input class="in" id="f-newcat" placeholder="Make a new tag, e.g. Kids love it"><button type="button" class="sbtn" data-act="addcat">Add</button></div>
+      <label class="f" for="f-source">Where it's from</label>
+      <input class="in" id="f-source" value="${esc(r ? r.source : '')}" placeholder="e.g. BBC Good Food, Mum, TikTok">
+      <div class="two"><div><label class="f" for="f-time">Time (mins)</label><input class="in" id="f-time" inputmode="numeric" value="${esc(r ? r.time : '')}"></div>
+      <div><label class="f" for="f-serves">Serves</label><input class="in" id="f-serves" inputmode="numeric" value="${esc(r ? r.serves : '')}"></div></div>
+      <label class="f" for="f-ing">Ingredients, one per line</label>
+      <textarea class="in" id="f-ing" placeholder="2 salmon fillets&#10;200ml double cream">${esc(r ? r.ingredients.join('\n') : '')}</textarea>
+      <label class="f" for="f-meth">Method, one step per line</label>
+      <textarea class="in" id="f-meth" placeholder="Season the salmon&#10;Fry for 4 minutes each side">${esc(r ? r.method.join('\n') : '')}</textarea>
+      <label class="f" for="f-notes">Notes</label>
+      <textarea class="in" id="f-notes" style="min-height:90px" placeholder="e.g. Oliver likes it without the chilli">${esc(r ? r.notes : '')}</textarea>
+      <button type="submit" class="big primary" style="margin-top:20px">Save recipe</button>
+    </form>`, {type: 'form', id});
+  $('#f-photo').onchange = async e => { const f = e.target.files[0]; if (!f) return; pending = await shrink(f); showPending(); };
+  $('#rform').onsubmit = e => { e.preventDefault(); saveForm(id); };
+  if (!r) setTimeout(() => $('#f-url') && $('#f-title').focus(), 250);
+}
+function showPending() {
+  $('#pv').innerHTML = pending ? `<img src="${URL.createObjectURL(pending)}" alt="">` : '<span class="noimg">No photo</span>';
+  $('#rmphoto').hidden = !pending;
+}
+function shrink(blob, max = 1400) {
+  return new Promise(res => {
+    const img = new Image(), u = URL.createObjectURL(blob);
+    img.onload = () => {
+      const s = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+      const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * s); c.height = Math.round(img.naturalHeight * s);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(u);
+      c.toBlob(b => res(b || blob), 'image/jpeg', 0.82);
+    };
+    img.onerror = () => { URL.revokeObjectURL(u); res(blob); };
+    img.src = u;
+  });
+}
+async function doImport() {
+  const url = $('#f-url').value.trim();
+  if (!/^https?:\/\//i.test(url)) return toast('Paste a full link starting with https://');
+  const btn = $('#impbtn'); btn.disabled = true; btn.textContent = 'Reading…';
+  try {
+    const res = await fetch('/api/import?url=' + encodeURIComponent(url));
+    if (!res.ok) throw new Error('bad');
+    const d = await res.json();
+    if (!$('#rform')) return;
+    const fill = (sel, v) => { if (v && !$(sel).value.trim()) $(sel).value = v; };
+    fill('#f-title', d.title); fill('#f-source', d.source); fill('#f-time', d.time); fill('#f-serves', d.serves);
+    fill('#f-ing', (d.ingredients || []).join('\n')); fill('#f-meth', (d.method || []).join('\n'));
+    const hadPhoto = sheetState.id && (R.find(x => x.id === sheetState.id) || {}).photo;
+    if (d.image && pending === undefined && !hadPhoto) {
+      try { const ir = await fetch('/api/import?mode=img&url=' + encodeURIComponent(d.image)); if (ir.ok) { pending = await shrink(await ir.blob()); showPending(); } } catch (e) {}
+    }
+    toast(d.ingredients && d.ingredients.length ? 'Filled in. Check it over, pick categories and save.' : "That site didn't share the recipe details. The link will be saved, so add the rest yourself.");
+  } catch (e) {
+    toast("Couldn't read that page. The link will still be saved with the recipe.");
+  } finally { btn.disabled = false; btn.textContent = 'Fill in'; }
+}
+async function saveForm(id) {
+  const title = $('#f-title').value.trim();
+  if (!title) { toast('Give it a name first'); $('#f-title').focus(); return; }
+  const old = id ? R.find(r => r.id === id) : null;
+  const r = Object.assign({}, old || {id: uid(), week: false, cooked: false, created: Date.now(), photo: null}, {
+    title, cats: [...formCats], url: $('#f-url').value.trim(), source: $('#f-source').value.trim(),
+    time: $('#f-time').value.trim(), serves: $('#f-serves').value.trim(),
+    ingredients: lines($('#f-ing').value), method: lines($('#f-meth').value).map(s => s.replace(/^\s*(step\s*)?\d+\s*[.):-]?\s+/i, '')),
+    notes: $('#f-notes').value.trim()
+  });
+  try {
+    if (pending !== undefined) {
+      if (r.photo) { await del('photos', r.photo); urls.delete(r.photo); }
+      if (pending) { const pid = uid('p'); await put('photos', pending, pid); r.photo = pid; urls.set(pid, URL.createObjectURL(pending)); }
+      else r.photo = null;
+    }
+    await saveRecipe(r);
+  } catch (e) { return toast("Couldn't save. Your phone may be low on storage."); }
+  R = R.filter(x => x.id !== r.id).concat(r);
+  render(); showDetail(r.id); toast('Saved');
+}
+
+/* ---------- week & shopping ---------- */
+async function setWeek(r, on) { r.week = on; if (!on) r.cooked = false; await saveRecipe(r); }
+async function pick() {
+  const pool = R.filter(r => !r.week && passF(r));
+  const active = Object.values(F).filter(Boolean);
+  if (!pool.length) return toast('Nothing left to pick from. Try clearing your filters.');
+  for (;;) {
+    const r = pool[Math.floor(Math.random() * pool.length)];
+    const {i} = await dialog(`<p class="mut">How about…</p><h3>${esc(r.title)}</h3><p class="mut">${esc(r.cats.join(' · '))}</p>${active.length ? `<p class="small">Picking from: ${esc(active.join(' + '))}</p>` : ''}`, [{label: 'Close'}, {label: 'Another'}, {label: 'Add it', cls: 'primary'}]);
+    if (i === 2) { await setWeek(r, true); render(); toast('Added to this week'); return; }
+    if (i !== 1) return;
+  }
+}
+function listText() {
+  const done = new Set(SHOP.done), {wk} = shopItems(), out = [];
+  const ex = SHOP.extra.filter(t => !done.has('x|' + t)); if (ex.length) out.push(...ex);
+  for (const r of wk) { const it = r.ingredients.filter(t => !done.has(r.id + '|' + t)); if (it.length) out.push('', r.title + ':', ...it.map(t => '- ' + t)); }
+  return out.join('\n').trim();
+}
+
+/* ---------- backup ---------- */
+const toDataURL = b => new Promise(res => { const f = new FileReader(); f.onload = () => res(f.result); f.readAsDataURL(b); });
+function showSettings() {
+  const photos = R.filter(r => r.photo).length, last = lsGet('lastBackup');
+  const catList = g => catsIn(g).map(n => `<div class="catrow"><span>${esc(n)} <span class="mut">(${R.filter(r => r.cats.includes(n)).length})</span></span><button data-act="renamecat" data-c="${esc(n)}">Rename</button><button data-act="delcat" data-c="${esc(n)}">Remove</button></div>`).join('');
+  openSheet(`
+    <div class="sbar"><button class="tbtn" data-act="close">‹ Back</button><b>Settings</b><span style="width:70px"></span></div>
+    <div class="pad">
+      <h3>Backup</h3>
+      <p>Your recipes and photos are saved on this phone only. Back up now and then and save the file to iCloud Drive, so nothing is lost if you change phones.</p>
+      <p class="small">${R.length} recipes, ${photos} photos.${last ? ' Last backup ' + new Date(+last).toLocaleDateString('en-GB') + '.' : ' Not backed up yet.'}</p>
+      ${backupFile ? `<button class="big primary" id="savebackup">Save backup file</button>` : `<button class="big" data-act="backup">Make a backup</button>`}
+      <button class="big ghost" data-act="restore">Restore from a backup</button>
+      ${GROUPS.map(([g, label]) => `<h3>${label}</h3>${catList(g) || '<p class="small">None yet.</p>'}`).join('')}
+      <p class="small">Removing a category or tag keeps the recipes; they just lose that label. Make new tags from any recipe's Edit screen.</p>
+    </div>`, {type: 'settings'});
+  const sb = $('#savebackup');
+  if (sb) sb.onclick = () => {
+    const f = backupFile;
+    const done = () => { lsSet('lastBackup', String(Date.now())); backupFile = null; showSettings(); toast('Backup saved'); };
+    if (navigator.canShare && navigator.canShare({files: [f]})) {
+      navigator.share({files: [f], title: 'Recipe backup'}).then(done).catch(e => { if (e && e.name !== 'AbortError') toast("Couldn't open the share sheet."); });
+    } else {
+      const a = document.createElement('a'); a.href = URL.createObjectURL(f); a.download = f.name; document.body.appendChild(a); a.click(); a.remove(); done();
+    }
+  };
+}
+async function makeBackup() {
+  toast('Preparing backup…');
+  const photos = {};
+  for (const r of R) if (r.photo) { const b = await get('photos', r.photo); if (b) photos[r.photo] = await toDataURL(b); }
+  const data = JSON.stringify({app: 'recipe-box', v: 1, date: new Date().toISOString(), recipes: R, cats: CATS, shop: SHOP, photos});
+  backupFile = new File([data], `recipes-backup-${new Date().toISOString().slice(0, 10)}.json`, {type: 'application/json'});
+  showSettings(); toast('Ready. Tap Save backup file.');
+}
+async function restore(file) {
+  let d; try { d = JSON.parse(await file.text()); } catch (e) { return toast("That file isn't a recipe backup."); }
+  if (!d || d.app !== 'recipe-box' || !Array.isArray(d.recipes)) return toast("That file isn't a recipe backup.");
+  if (!(await ask(`Replace everything on this phone with the ${d.recipes.length} recipes in this backup?`, 'Replace', true))) return;
+  try {
+    await clearStore('recipes'); await clearStore('photos'); urls.clear();
+    for (const [k, v] of Object.entries(d.photos || {})) { const b = await (await fetch(v)).blob(); await put('photos', b, k); }
+    await op('recipes', 'readwrite', o => { d.recipes.forEach(r => o.put(r)); });
+    await put('meta', d.cats || [], 'cats'); await put('meta', d.shop || {extra: [], done: []}, 'shop'); await put('meta', true, 'seeded');
+  } catch (e) { return toast('Restore failed part way. Try again.'); }
+  closeSheet(); await load(); toast('Backup restored');
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click', async e => {
+  const el = e.target.closest('[data-act]'); if (!el) return;
+  const act = el.dataset.act, id = el.dataset.id, r = id ? R.find(x => x.id === id) : null;
+  switch (act) {
+    case 'tab': tab = el.dataset.t; window.scrollTo(0, 0); render(); break;
+    case 'filter': { const g = el.dataset.g; F[g] = F[g] === el.dataset.c ? null : el.dataset.c; renderRecipes(); break; }
+    case 'open': showDetail(id); break;
+    case 'tick':
+      if (!r) break; await setWeek(r, !r.week); render();
+      if (sheetState && sheetState.type === 'detail' && sheetState.id === id) showDetail(id);
+      break;
+    case 'cook': if (r) { r.cooked = !r.cooked; await saveRecipe(r); render(); } break;
+    case 'add': showForm(null); break;
+    case 'edit': showForm(id); break;
+    case 'close': closeSheet(); break;
+    case 'cancelform': if (id) showDetail(id); else closeSheet(); break;
+    case 'save': saveForm(id || null); break;
+    case 'import': doImport(); break;
+    case 'rmphoto': pending = null; showPending(); break;
+    case 'fcat': { const c = el.dataset.c; formCats.has(c) ? formCats.delete(c) : formCats.add(c); el.classList.toggle('on'); break; }
+    case 'addcat': {
+      const n = $('#f-newcat').value.trim(); if (!n) break;
+      if (!CATS.some(c => c.name.toLowerCase() === n.toLowerCase())) { CATS.push({name: n, group: 'tags'}); await saveCats(); }
+      formCats.add(CATS.find(c => c.name.toLowerCase() === n.toLowerCase()).name);
+      $('#f-newcat').value = ''; $('#catwrap').innerHTML = catChips(); break;
+    }
+    case 'delete':
+      if (r && await ask(`Delete "${r.title}"? This can't be undone.`, 'Delete', true)) {
+        if (r.photo) { await del('photos', r.photo); urls.delete(r.photo); }
+        await del('recipes', r.id); R = R.filter(x => x.id !== r.id); closeSheet(); render(); toast('Deleted');
+      }
+      break;
+    case 'pick': pick(); break;
+    case 'clearweek':
+      if (await ask('Start a new week? This unticks every meal and clears the shopping list ticks.', 'Start new week')) {
+        await op('recipes', 'readwrite', o => { R.forEach(x => { if (x.week || x.cooked) { x.week = false; x.cooked = false; o.put(x); } }); });
+        SHOP.done = []; await saveShop(); render(); toast('Fresh week. Start ticking.');
+      }
+      break;
+    case 'shoptoggle': {
+      const k = el.dataset.k, s = new Set(SHOP.done); s.has(k) ? s.delete(k) : s.add(k);
+      SHOP.done = [...s]; el.classList.toggle('done'); await saveShop(); break;
+    }
+    case 'shopclear': {
+      const s = new Set(SHOP.done); SHOP.extra = SHOP.extra.filter(t => !s.has('x|' + t)); SHOP.done = [];
+      await saveShop(); renderShop(); break;
+    }
+    case 'copylist': {
+      const t = listText(); if (!t) { toast('Everything is ticked off'); break; }
+      try { await navigator.clipboard.writeText(t); toast('Copied. Paste it into a message or Notes.'); } catch (err) { toast("Couldn't copy on this device."); }
+      break;
+    }
+    case 'settings': showSettings(); break;
+    case 'backup': makeBackup(); break;
+    case 'restore': $('#restorefile').click(); break;
+    case 'hideinstall': lsSet('hideinstall', '1'); $('#install').hidden = true; break;
+    case 'renamecat': {
+      const old = el.dataset.c;
+      const res = await dialog(`<h3>Rename category</h3><input class="in" value="${esc(old)}" style="margin-top:8px">`, [{label: 'Cancel'}, {label: 'Rename', cls: 'primary'}]);
+      const n = (res.val || '').trim(); if (res.i !== 1 || !n || n === old) break;
+      CATS.forEach(c => { if (c.name === old) c.name = n; }); await saveCats();
+      await op('recipes', 'readwrite', o => { R.forEach(x => { const i = x.cats.indexOf(old); if (i > -1) { x.cats[i] = n; o.put(x); } }); });
+      for (const [g] of GROUPS) if (F[g] === old) F[g] = n; showSettings(); render(); break;
+    }
+    case 'delcat': {
+      const n = el.dataset.c; if (!(await ask(`Remove "${n}"? Recipes stay, they just lose this label.`, 'Remove', true))) break;
+      CATS = CATS.filter(c => c.name !== n); await saveCats();
+      await op('recipes', 'readwrite', o => { R.forEach(x => { if (x.cats.includes(n)) { x.cats = x.cats.filter(c => c !== n); o.put(x); } }); });
+      for (const [g] of GROUPS) if (F[g] === n) F[g] = null; showSettings(); render(); break;
+    }
+  }
+});
+$('#q').addEventListener('input', e => { q = e.target.value; renderRecipes(); });
+$('#restorefile').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if (f) restore(f); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#dlg').hidden) $('#dlg').click(); });
+
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('/sw.js').catch(() => {});
+load();
+}
+</script>
+</body>
+</html>
